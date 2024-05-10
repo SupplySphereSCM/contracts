@@ -18,6 +18,7 @@ contract SupplySphere is Context, AccessControl {
     Products products;
     RawMaterials rawMaterials;
     Services services;
+    SupplyChain supplyChain;
 
     bytes32 public constant SELLER_ROLE = keccak256("SELLER_ROLE");
     bytes32 public constant TRANSPORTER_ROLE = keccak256("TRANSPORTER_ROLE");
@@ -25,9 +26,23 @@ contract SupplySphere is Context, AccessControl {
 
     IERC20 public paymentToken;
 
-    constructor(IERC20 _paymentToken) {
-        paymentToken = _paymentToken;
+    constructor(
+        IERC20 _paymentToken,
+        Logistics _logistics,
+        Products _products,
+        RawMaterials _rawMaterials,
+        Services _services,
+        SupplyChain _supplyChain
+    ) {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender()); // Default admin setup
+
+        paymentToken = _paymentToken;
+
+        logistics = Logistics(_logistics);
+        products = Products(_products);
+        rawMaterials = RawMaterials(_rawMaterials);
+        services = Services(_services);
+        supplyChain = SupplyChain(_supplyChain);
     }
 
     function registerUser(bytes32 role) public returns (bool) {
@@ -138,89 +153,31 @@ contract SupplySphere is Context, AccessControl {
         return services.removeService(id);
     }
 
-    function getService(uint256 id) public view returns (Service memory) {
+    function getService(
+        uint256 id
+    ) public view returns (Services.Service memory) {
         return services.getService(id);
     }
 
-    function getAllServices() public view returns (Service[] memory) {
+    function getAllServices() public view returns (Services.Service[] memory) {
         return services.getAllServices();
     }
 
     // -----------------------------------------------------------------------
-    // SERVICES
+    // SUPPLYCHAIN
     // -----------------------------------------------------------------------
-
     function createSupplyChain(
         string memory name,
         string memory description,
-        StepInput[] memory _steps
-    ) public returns (uint256) {
-        chainIdCounter.increment();
-        uint256 chainId = chainIdCounter.current();
+        SupplyChain.StepInput[] memory _steps
+    ) external onlyRole(MANUFACTURER_ROLE) returns (uint256) {
+        return supplyChain.createSupplyChain(name, description, _steps);
+    }
 
-        Chain storage newChain = supplychains[chainId];
-        newChain.id = chainId;
-        newChain.name = name;
-        newChain.description = description;
-        newChain.totalFundedAmount = 0;
-        newChain.isFunded = false;
-        newChain.isActive = false;
-        newChain.owner = _msgSender();
-
-        uint256 localStepIdCounter = 0;
-
-        for (uint256 i = 0; i < _steps.length; i++) {
-            uint256 stepId = localStepIdCounter;
-            localStepIdCounter++;
-
-            uint256 totalCost;
-            uint256 logisticsCost;
-            uint256 itemCost;
-
-            address transporter;
-            address sender;
-
-            Logistic memory logistic = getLogistic(_steps[i].logisticsId);
-            // logisticsCost = logistic.price * _step[i].quantity;
-            logisticsCost = logistic.price;
-            transporter = logistic.owner;
-
-            if (_steps[i].stepType == StepType.Procuring) {
-                Product memory product = getProduct(_steps[i].itemId);
-                itemCost = product.price * _steps[i].quantity;
-                sender = product.owner;
-            } else if (_steps[i].stepType == StepType.Servicing) {
-                Service memory service = getService(_steps[i].itemId);
-                itemCost = service.price * _steps[i].quantity;
-                sender = service.owner;
-            }
-
-            totalCost = logisticsCost + itemCost;
-
-            Step memory newStep = Step({
-                stepId: stepId,
-                stepType: _steps[i].stepType,
-                itemId: _steps[i].itemId,
-                logisticsId: _steps[i].logisticsId,
-                quantity: _steps[i].quantity,
-                logisticsCost: logisticsCost,
-                itemCost: itemCost,
-                totalCost: totalCost,
-                sender: sender,
-                transporter: transporter,
-                receiver: _steps[i].receiver,
-                senderConfirmed: false,
-                transporterReceived: false,
-                transporterDelivered: false,
-                receiverConfirmed: false
-            });
-
-            newChain.steps.push(newStep);
-            newChain.totalFundedAmount += totalCost;
-        }
-
-        chainIds.add(chainId);
-        return chainId;
+    function getSupplyChain(
+        uint256 id
+    ) public view returns (SupplyChain.Chain memory) {
+        return supplyChain.getSupplyChain(id);
     }
 
     // -----------------------------------------------------------------------
@@ -233,24 +190,21 @@ contract SupplySphere is Context, AccessControl {
             );
         }
 
-        Step storage step = supplychains[supplyChainId].steps[stepId];
-        step.senderConfirmed = true;
+        supplyChain._confirmSender(supplyChainId, stepId);
     }
 
     function confirmTransporterReceived(
         uint256 supplyChainId,
         uint256 stepId
     ) external onlyRole(TRANSPORTER_ROLE) {
-        Step storage step = supplychains[supplyChainId].steps[stepId];
-        step.transporterReceived = true;
+        supplyChain._confirmTransporterReceived(supplyChainId, stepId);
     }
 
     function confirmTransporterDelivered(
         uint256 supplyChainId,
         uint256 stepId
     ) external onlyRole(TRANSPORTER_ROLE) {
-        Step storage step = supplychains[supplyChainId].steps[stepId];
-        step.transporterDelivered = true;
+        supplyChain._confirmTransporterDelivered(supplyChainId, stepId);
     }
 
     function confirmReceiver(uint256 supplyChainId, uint256 stepId) external {
@@ -264,16 +218,41 @@ contract SupplySphere is Context, AccessControl {
             );
         }
 
-        Step storage step = supplychains[supplyChainId].steps[stepId];
-        step.receiverConfirmed = true;
-
+        supplyChain._confirmReceiver(supplyChainId, stepId);
+        SupplyChain.Step memory step = supplyChain
+            .getSupplyChain(supplyChainId)
+            .steps[stepId];
         _releaseFunds(step);
+    }
+
+    function fundChain(uint256 chainId) public {
+        SupplyChain.Chain memory chain = supplyChain.getSupplyChain(chainId);
+        require(chain.owner == _msgSender(), "Unautorized Onwer");
+        require(
+            paymentToken.allowance(_msgSender(), address(this)) >=
+                chain.totalFundedAmount,
+            "Insufficient Allowance"
+        );
+
+        require(
+            paymentToken.transferFrom(
+                _msgSender(),
+                address(this),
+                chain.totalFundedAmount
+            ),
+            "Payment Failed"
+        );
+
+        supplyChain._setFundChain(chainId);
     }
 
     // -----------------------------------------------------------------------
 
-    function _releaseFunds(Step storage step) internal {
-        require(_isStepCompleted(step), "Step confirmations incomplete");
+    function _releaseFunds(SupplyChain.Step memory step) internal {
+        require(
+            supplyChain._isStepCompleted(step),
+            "Step confirmations incomplete"
+        );
         require(
             paymentToken.transfer(step.transporter, step.logisticsCost),
             "Failed to release funds"
@@ -282,5 +261,15 @@ contract SupplySphere is Context, AccessControl {
             paymentToken.transfer(step.sender, step.itemCost),
             "Failed to release funds"
         );
+    }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
     }
 }

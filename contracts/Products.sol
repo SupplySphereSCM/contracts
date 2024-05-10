@@ -39,7 +39,7 @@ contract Products is Context, AccessControl {
             name: name,
             price: price,
             tax: tax,
-            owner: msg.sender,
+            owner: _msgSender(),
             quantity: quantity,
             available: quantity
         });
@@ -78,5 +78,15 @@ contract Products is Context, AccessControl {
             allProducts[i] = products[id];
         }
         return allProducts;
+    }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
     }
 }

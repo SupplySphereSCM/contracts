@@ -71,4 +71,14 @@ contract Logistics is Context, AccessControl {
         }
         return allLogistics;
     }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
+    }
 }

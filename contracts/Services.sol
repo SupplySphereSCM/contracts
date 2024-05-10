@@ -41,7 +41,7 @@ contract Services is Context, AccessControl {
             price: price,
             tax: tax,
             quantity: quantity,
-            owner: msg.sender,
+            owner: _msgSender(),
             volume: volume
         });
         serviceIds.add(id);
@@ -79,5 +79,15 @@ contract Services is Context, AccessControl {
             allServices[i] = services[id];
         }
         return allServices;
+    }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
     }
 }

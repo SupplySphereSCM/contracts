@@ -39,7 +39,7 @@ contract RawMaterials is Context, AccessControl {
             name: name,
             price: price,
             tax: tax,
-            owner: msg.sender,
+            owner: _msgSender(),
             quantity: quantity,
             available: quantity
         });
@@ -80,5 +80,15 @@ contract RawMaterials is Context, AccessControl {
             allRawMaterials[i] = materials[id];
         }
         return allRawMaterials;
+    }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
     }
 }
