@@ -21,6 +21,7 @@ contract SupplySphere is Context, AccessControl {
     SupplyChain supplyChain;
 
     bytes32 public constant SELLER_ROLE = keccak256("SELLER_ROLE");
+    bytes32 public constant RETAILER_ROLE = keccak256("RETAILER_ROLE");
     bytes32 public constant TRANSPORTER_ROLE = keccak256("TRANSPORTER_ROLE");
     bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
 
@@ -103,6 +104,13 @@ contract SupplySphere is Context, AccessControl {
 
     function getAllProducts() public view returns (Products.Product[] memory) {
         return products.getAllProducts();
+    }
+
+    function orderProduct(
+        uint256 id,
+        uint256 quantity
+    ) external onlyRole(RETAILER_ROLE) {
+        return products.orderProduct(id, quantity);
     }
 
     // -----------------------------------------------------------------------

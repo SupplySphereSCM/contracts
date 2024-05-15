@@ -105,23 +105,27 @@ contract SupplyChain is Context {
             address transporter;
             address sender;
 
+            StepInput memory _step = _steps[i];
+
             Logistics.Logistic memory logistic = logistics.getLogistic(
-                _steps[i].logisticsId
+                _step.logisticsId
             );
             // logisticsCost = logistic.price * _step[i].quantity;
             logisticsCost = logistic.price;
             transporter = logistic.owner;
 
-            if (_steps[i].stepType == StepType.Procuring) {
+            if (_step.stepType == StepType.Procuring) {
                 RawMaterials.RawMaterial memory material = rawMaterials
-                    .getRawMaterial(_steps[i].itemId);
-                itemCost = material.price * _steps[i].quantity;
+                    .getRawMaterial(_step.itemId);
+                itemCost = material.price * _step.quantity;
                 sender = material.owner;
-            } else if (_steps[i].stepType == StepType.Servicing) {
+
+                rawMaterials.reduceQuantity(material.id, _step.quantity);
+            } else if (_step.stepType == StepType.Servicing) {
                 Services.Service memory service = services.getService(
-                    _steps[i].itemId
+                    _step.itemId
                 );
-                itemCost = service.price * _steps[i].quantity;
+                itemCost = service.price * _step.quantity;
                 sender = service.owner;
             }
 
@@ -129,16 +133,16 @@ contract SupplyChain is Context {
 
             Step memory newStep = Step({
                 stepId: stepId,
-                stepType: _steps[i].stepType,
-                itemId: _steps[i].itemId,
-                logisticsId: _steps[i].logisticsId,
-                quantity: _steps[i].quantity,
+                stepType: _step.stepType,
+                itemId: _step.itemId,
+                logisticsId: _step.logisticsId,
+                quantity: _step.quantity,
                 logisticsCost: logisticsCost,
                 itemCost: itemCost,
                 totalCost: totalCost,
                 sender: sender,
                 transporter: transporter,
-                receiver: _steps[i].receiver,
+                receiver: _step.receiver,
                 senderConfirmed: false,
                 transporterReceived: false,
                 transporterDelivered: false,

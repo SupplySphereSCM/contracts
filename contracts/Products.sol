@@ -25,6 +25,8 @@ contract Products is Context, AccessControl {
     Counters.Counter public productIdCounter;
     mapping(uint256 => Product) public products;
 
+    event OrderProduct(uint256 productId, uint256 quantity, address buyer);
+
     function addProduct(
         string calldata name,
         uint256 price,
@@ -78,6 +80,22 @@ contract Products is Context, AccessControl {
             allProducts[i] = products[id];
         }
         return allProducts;
+    }
+
+    function reduceQuantity(
+        uint256 id,
+        uint256 quantity
+    ) public returns (bool) {
+        if (products[id].quantity >= quantity) {
+            products[id].quantity -= quantity;
+            return true;
+        }
+        return false;
+    }
+
+    function orderProduct(uint256 id, uint256 qty) public {
+        require(reduceQuantity(id, qty), "Out of Stock!");
+        emit OrderProduct(id, qty, _msgSender());
     }
 
     function _msgSender()

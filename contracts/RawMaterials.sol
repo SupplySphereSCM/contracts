@@ -82,6 +82,17 @@ contract RawMaterials is Context, AccessControl {
         return allRawMaterials;
     }
 
+    function reduceQuantity(
+        uint256 id,
+        uint256 quantity
+    ) public returns (bool) {
+        if (materials[id].quantity >= quantity) {
+            materials[id].quantity -= quantity;
+            return true;
+        }
+        return false;
+    }
+
     function _msgSender()
         internal
         view
