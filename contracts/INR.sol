@@ -10,4 +10,18 @@ contract INR is ERC20, ERC20Permit {
     function mint(address account, uint256 value) public {
         _mint(account, value);
     }
+
+    function burn(address account, uint256 value) public {
+        _burn(account, value);
+    }
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
+        return tx.origin;
+    }
 }

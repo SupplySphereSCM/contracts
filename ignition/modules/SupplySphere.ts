@@ -3,7 +3,7 @@ import INRModule from "./INR";
 
 const SupplySphereModule = buildModule("SupplySphereModule", (m) => {
   const supplySphere = m.contract("SupplySphere", [
-    "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "0xa818d81E54b927AE6E5bA510434820cd3e9eB02d",
   ]);
 
   return { supplySphere };

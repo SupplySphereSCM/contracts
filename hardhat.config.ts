@@ -5,7 +5,7 @@ import "@nomicfoundation/hardhat-viem";
 import * as dotenv from "dotenv";
 
 dotenv.config({
-  path: "./",
+  path: ".env",
 });
 
 const config: HardhatUserConfig = {
