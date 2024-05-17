@@ -1,7 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { keccak256 } from "viem";
 
 describe("SupplySphere", function () {
   async function deploySupplySphere() {
@@ -53,6 +52,7 @@ describe("SupplySphere", function () {
     const SELLER_ROLE = await supplysphere.read.SELLER_ROLE();
     const TRANSPORTER_ROLE = await supplysphere.read.TRANSPORTER_ROLE();
     const MANUFACTURER_ROLE = await supplysphere.read.MANUFACTURER_ROLE();
+    const RETAILER_ROLE = await supplysphere.read.RETAILER_ROLE();
 
     return {
       testClient,
@@ -61,6 +61,7 @@ describe("SupplySphere", function () {
       TRANSPORTER_ROLE,
       SELLER_ROLE,
       MANUFACTURER_ROLE,
+      RETAILER_ROLE,
       //
       inr,
       logistics,

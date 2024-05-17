@@ -11,6 +11,18 @@ dotenv.config({
 const config: HardhatUserConfig = {
   solidity: "0.8.24",
   networks: {
+    hardhat: {
+      accounts: {
+        mnemonic: process.env.MNEMONICS,
+      },
+    },
+    ganache: {
+      chainId: 1337,
+      url: "http://127.0.0.1:7545",
+      accounts: {
+        mnemonic: process.env.MNEMONICS,
+      },
+    },
     amoy: {
       chainId: 80002,
       url: "https://rpc-amoy.polygon.technology/",
