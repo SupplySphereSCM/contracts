@@ -11,6 +11,10 @@ contract INR is ERC20, ERC20Permit {
         _mint(account, value);
     }
 
+    function decimals() public view virtual override returns (uint8) {
+        return 2;
+    }
+
     function burn(address account, uint256 value) public {
         _burn(account, value);
     }
